@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Typing Game</title>
+  <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+  <script>
+    const { useState, useEffect } = React;
+
+    function TypingGame() {
+      const sentences = {
+        "0001": { sentence: "The quick brown fox jumps over the lazy dog.", ok_count: 0, ng_count: 0, last_datetime: null },
+        "0002": { sentence: "A journey of a thousand miles begins with a single step.", ok_count: 0, ng_count: 0, last_datetime: null },
+        "0003": { sentence: "To be or not to be, that is the question.", ok_count: 0, ng_count: 0, last_datetime: null },
+        "0004": { sentence: "All that glitters is not gold.", ok_count: 0, ng_count: 0, last_datetime: null },
+        "0005": { sentence: "Practice makes perfect.", ok_count: 0, ng_count: 0, last_datetime: null },
+        "0006": { sentence: "Better late than never.", ok_count: 0, ng_count: 0, last_datetime: null },
+        "0007": { sentence: "Actions speak louder than words.", ok_count: 0, ng_count: 0, last_datetime: null },
+        "0008": { sentence: "Time flies when you're having fun.", ok_count: 0, ng_count: 0, last_datetime: null },
+        "0009": { sentence: "The pen is mightier than the sword.", ok_count: 0, ng_count: 0, last_datetime: null },
+        "0010": { sentence: "Every cloud has a silver lining.", ok_count: 0, ng_count: 0, last_datetime: null }
+      };
+
+      const [currentKey, setCurrentKey] = useState(null);
+      const [input, setInput] = useState("");
+      const [message, setMessage] = useState("");
+      const [messageColor, setMessageColor] = useState("");
+      const [checked, setChecked] = useState(false);
+      const [okCount, setOkCount] = useState(0);
+      const [ngCount, setNgCount] = useState(0);
+
+      // ロード時に優先度に基づいて文を選択する
+      useEffect(() => {
+        const now = new Date();
+        const twelveHoursAgo = new Date(now.getTime() - 12 * 60 * 60 * 1000);
+        
+        const sortedKeys = Object.keys(sentences).sort((a, b) => {
+          const dataA = JSON.parse(localStorage.getItem(a)) || sentences[a];
+          const dataB = JSON.parse(localStorage.getItem(b)) || sentences[b];
+
+          // 1. last_datetime が null のものを優先
+          if (!dataA.last_datetime && dataB.last_datetime) return -1;
+          if (!dataB.last_datetime && dataA.last_datetime) return 1;
+
+          // 2. last_datetime が12時間以上前のものを優先し、ok_count が少ない順
+          const dateA = new Date(dataA.last_datetime);
+          const dateB = new Date(dataB.last_datetime);
+          if (dateA < twelveHoursAgo && dateB >= twelveHoursAgo) return -1;
+          if (dateB < twelveHoursAgo && dateA >= twelveHoursAgo) return 1;
+
+          if (dateA < twelveHoursAgo && dateB < twelveHoursAgo) {
+            return dataA.ok_count - dataB.ok_count;
+          }
+
+          // 3. その他の場合は正解が少ない順
+          return dataA.ok_count - dataB.ok_count;
+        });
+
+        setCurrentKey(sortedKeys[0]);
+      }, []);
+
+      useEffect(() => {
+        if (currentKey) {
+          const storedData = JSON.parse(localStorage.getItem(currentKey));
+          if (storedData) {
+            setOkCount(Number(storedData.ok_count) || 0);
+            setNgCount(Number(storedData.ng_count) || 0);
+          } else {
+            setOkCount(sentences[currentKey].ok_count);
+            setNgCount(sentences[currentKey].ng_count);
+          }
+        }
+      }, [currentKey]);
+
+      const checkAnswer = () => {
+        const now = new Date().toISOString();
+        if (input.trim().toLowerCase() === sentences[currentKey].sentence.toLowerCase()) {
+          setMessage("Correct!");
+          setMessageColor("green");
+          incrementLocalStorage(currentKey, "ok_count", now);
+        } else {
+          setMessage("Incorrect");
+          setMessageColor("red");
+          incrementLocalStorage(currentKey, "ng_count", now);
+        }
+        setChecked(true);
+      };
+
+      const nextSentence = () => {
+        const now = new Date();
+        const twelveHoursAgo = new Date(now.getTime() - 12 * 60 * 60 * 1000);
+
+        const sortedKeys = Object.keys(sentences).sort((a, b) => {
+          const dataA = JSON.parse(localStorage.getItem(a)) || sentences[a];
+          const dataB = JSON.parse(localStorage.getItem(b)) || sentences[b];
+
+          // 1. last_datetime が null のものを優先
+          if (!dataA.last_datetime && dataB.last_datetime) return -1;
+          if (!dataB.last_datetime && dataA.last_datetime) return 1;
+
+          // 2. last_datetime が12時間以上前のものを優先し、ok_count が少ない順
+          const dateA = new Date(dataA.last_datetime);
+          const dateB = new Date(dataB.last_datetime);
+          if (dateA < twelveHoursAgo && dateB >= twelveHoursAgo) return -1;
+          if (dateB < twelveHoursAgo && dateA >= twelveHoursAgo) return 1;
+
+          if (dateA < twelveHoursAgo && dateB < twelveHoursAgo) {
+            return dataA.ok_count - dataB.ok_count;
+          }
+
+          // 3. その他の場合は正解が少ない順
+          return dataA.ok_count - dataB.ok_count;
+        });
+
+        setCurrentKey(sortedKeys[0]);
+        setInput("");
+        setMessage("");
+        setChecked(false);
+      };
+
+      const incrementLocalStorage = (key, type, datetime) => {
+        const storedData = JSON.parse(localStorage.getItem(key)) || { ...sentences[key] };
+        const newValue = (Number(storedData[type]) || 0) + 1;
+        storedData[type] = newValue;
+        storedData.last_datetime = datetime;
+        localStorage.setItem(key, JSON.stringify(storedData));
+        if (type === "ok_count") {
+          setOkCount(newValue);
+        } else {
+          setNgCount(newValue);
+        }
+      };
+
+      if (!currentKey) return null;
+
+      return React.createElement(
+        'div',
+        null,
+        React.createElement('h1', null, 'Type the sentence:'),
+        React.createElement('p', null, sentences[currentKey].sentence),
+        React.createElement('p', { style: { color: messageColor, minHeight: '20px' } }, message || ' '),
+        React.createElement('input', {
+          type: 'text',
+          value: input,
+          onChange: (e) => setInput(e.target.value),
+          disabled: checked
+        }),
+        React.createElement('button', { onClick: checkAnswer, disabled: checked }, 'Check'),
+        checked && React.createElement('button', { onClick: nextSentence, style: { marginLeft: '10px' } }, 'Next'),
+        React.createElement(
+          'table',
+          { border: 1, cellPadding: 5, style: { marginTop: '10px' } },
+          React.createElement('tbody', null,
+            React.createElement('tr', null,
+              React.createElement('td', null, 'Correct attempts:'),
+              React.createElement('td', null, okCount)
+            ),
+            React.createElement('tr', null,
+              React.createElement('td', null, 'Incorrect attempts:'),
+              React.createElement('td', null, ngCount)
+            )
+          )
+        )
+      );
+    }
+
+    ReactDOM.render(React.createElement(TypingGame), document.getElementById('root'));
+  </script>
+</body>
+</html>
