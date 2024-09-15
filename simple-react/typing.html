@@ -3,173 +3,286 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Typing Game</title>
-  <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
-  <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+  <title>Type Sentence</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
-  <div id="root"></div>
+  <div class="container d-flex justify-content-center align-items-center vh-100">
+    <div class="card p-4 shadow-lg" style="max-width: 600px; width: 100%;">
+      <h1 class="text-center text-primary mb-4">Type Sentence</h1>
+      <div id="root"></div>
+    </div>
+  </div>
+  <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
   <script>
-    const { useState, useEffect } = React;
+    const { useState, useEffect, useRef } = React;
 
-    function TypingGame() {
-      const sentences = {
-        "0001": { sentence: "The quick brown fox jumps over the lazy dog.", ok_count: 0, ng_count: 0, last_datetime: null },
-        "0002": { sentence: "A journey of a thousand miles begins with a single step.", ok_count: 0, ng_count: 0, last_datetime: null },
-        "0003": { sentence: "To be or not to be, that is the question.", ok_count: 0, ng_count: 0, last_datetime: null },
-        "0004": { sentence: "All that glitters is not gold.", ok_count: 0, ng_count: 0, last_datetime: null },
-        "0005": { sentence: "Practice makes perfect.", ok_count: 0, ng_count: 0, last_datetime: null },
-        "0006": { sentence: "Better late than never.", ok_count: 0, ng_count: 0, last_datetime: null },
-        "0007": { sentence: "Actions speak louder than words.", ok_count: 0, ng_count: 0, last_datetime: null },
-        "0008": { sentence: "Time flies when you're having fun.", ok_count: 0, ng_count: 0, last_datetime: null },
-        "0009": { sentence: "The pen is mightier than the sword.", ok_count: 0, ng_count: 0, last_datetime: null },
-        "0010": { sentence: "Every cloud has a silver lining.", ok_count: 0, ng_count: 0, last_datetime: null }
-      };
-
-      const [currentKey, setCurrentKey] = useState(null);
-      const [input, setInput] = useState("");
-      const [message, setMessage] = useState("");
-      const [messageColor, setMessageColor] = useState("");
-      const [checked, setChecked] = useState(false);
-      const [okCount, setOkCount] = useState(0);
-      const [ngCount, setNgCount] = useState(0);
-
-      // ロード時に優先度に基づいて文を選択する
-      useEffect(() => {
-        const now = new Date();
-        const twelveHoursAgo = new Date(now.getTime() - 12 * 60 * 60 * 1000);
-        
-        const sortedKeys = Object.keys(sentences).sort((a, b) => {
-          const dataA = JSON.parse(localStorage.getItem(a)) || sentences[a];
-          const dataB = JSON.parse(localStorage.getItem(b)) || sentences[b];
-
-          // 1. last_datetime が null のものを優先
-          if (!dataA.last_datetime && dataB.last_datetime) return -1;
-          if (!dataB.last_datetime && dataA.last_datetime) return 1;
-
-          // 2. last_datetime が12時間以上前のものを優先し、ok_count が少ない順
-          const dateA = new Date(dataA.last_datetime);
-          const dateB = new Date(dataB.last_datetime);
-          if (dateA < twelveHoursAgo && dateB >= twelveHoursAgo) return -1;
-          if (dateB < twelveHoursAgo && dateA >= twelveHoursAgo) return 1;
-
-          if (dateA < twelveHoursAgo && dateB < twelveHoursAgo) {
-            return dataA.ok_count - dataB.ok_count;
-          }
-
-          // 3. その他の場合は正解が少ない順
-          return dataA.ok_count - dataB.ok_count;
-        });
-
-        setCurrentKey(sortedKeys[0]);
-      }, []);
-
-      useEffect(() => {
-        if (currentKey) {
-          const storedData = JSON.parse(localStorage.getItem(currentKey));
-          if (storedData) {
-            setOkCount(Number(storedData.ok_count) || 0);
-            setNgCount(Number(storedData.ng_count) || 0);
-          } else {
-            setOkCount(sentences[currentKey].ok_count);
-            setNgCount(sentences[currentKey].ng_count);
-          }
-        }
-      }, [currentKey]);
-
-      const checkAnswer = () => {
-        const now = new Date().toISOString();
-        if (input.trim().toLowerCase() === sentences[currentKey].sentence.toLowerCase()) {
-          setMessage("Correct!");
-          setMessageColor("green");
-          incrementLocalStorage(currentKey, "ok_count", now);
-        } else {
-          setMessage("Incorrect");
-          setMessageColor("red");
-          incrementLocalStorage(currentKey, "ng_count", now);
-        }
-        setChecked(true);
-      };
-
-      const nextSentence = () => {
-        const now = new Date();
-        const twelveHoursAgo = new Date(now.getTime() - 12 * 60 * 60 * 1000);
-
-        const sortedKeys = Object.keys(sentences).sort((a, b) => {
-          const dataA = JSON.parse(localStorage.getItem(a)) || sentences[a];
-          const dataB = JSON.parse(localStorage.getItem(b)) || sentences[b];
-
-          // 1. last_datetime が null のものを優先
-          if (!dataA.last_datetime && dataB.last_datetime) return -1;
-          if (!dataB.last_datetime && dataA.last_datetime) return 1;
-
-          // 2. last_datetime が12時間以上前のものを優先し、ok_count が少ない順
-          const dateA = new Date(dataA.last_datetime);
-          const dateB = new Date(dataB.last_datetime);
-          if (dateA < twelveHoursAgo && dateB >= twelveHoursAgo) return -1;
-          if (dateB < twelveHoursAgo && dateA >= twelveHoursAgo) return 1;
-
-          if (dateA < twelveHoursAgo && dateB < twelveHoursAgo) {
-            return dataA.ok_count - dataB.ok_count;
-          }
-
-          // 3. その他の場合は正解が少ない順
-          return dataA.ok_count - dataB.ok_count;
-        });
-
-        setCurrentKey(sortedKeys[0]);
-        setInput("");
-        setMessage("");
-        setChecked(false);
-      };
-
-      const incrementLocalStorage = (key, type, datetime) => {
-        const storedData = JSON.parse(localStorage.getItem(key)) || { ...sentences[key] };
-        const newValue = (Number(storedData[type]) || 0) + 1;
-        storedData[type] = newValue;
-        storedData.last_datetime = datetime;
-        localStorage.setItem(key, JSON.stringify(storedData));
-        if (type === "ok_count") {
-          setOkCount(newValue);
-        } else {
-          setNgCount(newValue);
-        }
-      };
-
-      if (!currentKey) return null;
-
-      return React.createElement(
-        'div',
-        null,
-        React.createElement('h1', null, 'Type the sentence:'),
-        React.createElement('p', null, sentences[currentKey].sentence),
-        React.createElement('p', { style: { color: messageColor, minHeight: '20px' } }, message || ' '),
-        React.createElement('input', {
-          type: 'text',
-          value: input,
-          onChange: (e) => setInput(e.target.value),
-          disabled: checked
-        }),
-        React.createElement('button', { onClick: checkAnswer, disabled: checked }, 'Check'),
-        checked && React.createElement('button', { onClick: nextSentence, style: { marginLeft: '10px' } }, 'Next'),
-        React.createElement(
-          'table',
-          { border: 1, cellPadding: 5, style: { marginTop: '10px' } },
-          React.createElement('tbody', null,
-            React.createElement('tr', null,
-              React.createElement('td', null, 'Correct attempts:'),
-              React.createElement('td', null, okCount)
-            ),
-            React.createElement('tr', null,
-              React.createElement('td', null, 'Incorrect attempts:'),
-              React.createElement('td', null, ngCount)
-            )
-          )
-        )
-      );
+    function getSentenceData() {
+        return {
+            "0001": { sentence: "The dog is lying down.", sentence_ja: "その犬は横になっている。", PERFECT_count: 0, GOOD_count: 0, FAIR_count: 0, BAD_count: 0, last_datetime: null, last_date: "-" },
+            "0002": { sentence: "Every long trip starts with a single step.", sentence_ja: "長い旅も一歩から始まる。", PERFECT_count: 0, GOOD_count: 0, FAIR_count: 0, BAD_count: 0, last_datetime: null, last_date: "-" },
+            "0003": { sentence: "Should I go for it or not?", sentence_ja: "やるべきかやめるべきか？", PERFECT_count: 0, GOOD_count: 0, FAIR_count: 0, BAD_count: 0, last_datetime: null, last_date: "-" },
+            "0004": { sentence: "Not everything that shines is valuable.", sentence_ja: "輝いているものがすべて価値があるとは限らない。", PERFECT_count: 0, GOOD_count: 0, FAIR_count: 0, BAD_count: 0, last_datetime: null, last_date: "-" },
+            "0005": { sentence: "Keep practicing, you'll improve.", sentence_ja: "練習を続ければ、上達するよ。", PERFECT_count: 0, GOOD_count: 0, FAIR_count: 0, BAD_count: 0, last_datetime: null, last_date: "-" },
+            "0006": { sentence: "It's better to be late than never.", sentence_ja: "遅れても、やらないよりはマシだよ。", PERFECT_count: 0, GOOD_count: 0, FAIR_count: 0, BAD_count: 0, last_datetime: null, last_date: "-" },
+            "0007": { sentence: "What you do is more important than what you say.", sentence_ja: "言うことよりも、何をするかが重要だ。", PERFECT_count: 0, GOOD_count: 0, FAIR_count: 0, BAD_count: 0, last_datetime: null, last_date: "-" },
+            "0008": { sentence: "Time goes by quickly when you're having fun.", sentence_ja: "楽しい時は時間が早く過ぎるね。", PERFECT_count: 0, GOOD_count: 0, FAIR_count: 0, BAD_count: 0, last_datetime: null, last_date: "-" },
+            "0009": { sentence: "Words can be more powerful than actions.", sentence_ja: "言葉は行動よりも力を持つことがある。", PERFECT_count: 0, GOOD_count: 0, FAIR_count: 0, BAD_count: 0, last_datetime: null, last_date: "-" },
+            "0010": { sentence: "There's always something positive, even in tough times.", sentence_ja: "どんな困難な時にも、必ず良い面がある。", PERFECT_count: 0, GOOD_count: 0, FAIR_count: 0, BAD_count: 0, last_datetime: null, last_date: "-" }
+        };
     }
 
-    ReactDOM.render(React.createElement(TypingGame), document.getElementById('root'));
+
+
+    function TypingGame() {
+    const sentences = getSentenceData();
+    const [currentKey, setCurrentKey] = useState(null);
+    const [input, setInput] = useState("");
+    const [secondInput, setSecondInput] = useState("");
+    const [message, setMessage] = useState("");
+    const [messageColor, setMessageColor] = useState("");
+    const [errorMessage, setErrorMessage] = useState("");
+    const [checked, setChecked] = useState(false);
+    const [showSecondInput, setShowSecondInput] = useState(false);
+    const [stats, setStats] = useState({
+        PERFECT: 0,
+        GOOD: 0,
+        FAIR: 0,
+        BAD: 0
+    });
+    
+    const inputRef = useRef(null);
+    const secondInputRef = useRef(null);
+
+    useEffect(() => {
+        const nextKey = selectNextSentence(sentences);
+        setCurrentKey(nextKey);
+    }, []);
+
+    useEffect(() => {
+        if (currentKey) {
+            loadSentenceStats(currentKey);
+            setChecked(false); // Reset checked state for the new sentence
+            setShowSecondInput(false); // Hide second input on new sentence
+            setErrorMessage(""); // Clear error message on new sentence
+        }
+    }, [currentKey]);
+
+    const selectNextSentence = (data) => {
+        const now = new Date();
+        const twelveHoursAgo = new Date(now.getTime() - 12 * 60 * 60 * 1000);
+
+        const candidates = Object.keys(data).map(key => {
+            const storedData = JSON.parse(localStorage.getItem(key)) || data[key];
+            const totalAttempts = (storedData.PERFECT_count || 0) + (storedData.GOOD_count || 0) + (storedData.FAIR_count || 0) + (storedData.BAD_count || 0);
+            return {
+                key,
+                last_datetime: storedData.last_datetime,
+                totalAttempts,
+                olderThanTwelveHours: new Date(storedData.last_datetime) < twelveHoursAgo
+            };
+        });
+
+        let filtered = candidates.filter(c => c.last_datetime === null);
+
+        if (filtered.length === 0) {
+            filtered = candidates.filter(c => c.olderThanTwelveHours)
+                .sort((a, b) => a.totalAttempts - b.totalAttempts);
+        }
+
+        if (filtered.length === 0) {
+            filtered = candidates.sort((a, b) => a.totalAttempts - b.totalAttempts);
+        }
+
+        const selected = filtered[Math.floor(Math.random() * filtered.length)];
+        return selected.key;
+    };
+
+    const loadSentenceStats = (key) => {
+        if (inputRef.current) {
+            inputRef.current.focus();
+        }
+
+        const storedData = JSON.parse(localStorage.getItem(key)) || sentences[key];
+        setStats({
+            PERFECT: storedData.PERFECT_count || 0,
+            GOOD: storedData.GOOD_count || 0,
+            FAIR: storedData.FAIR_count || 0,
+            BAD: storedData.BAD_count || 0
+        });
+    };
+
+    const calculateSimilarity = (input, sentence) => {
+        if (!input || !sentence) return 0.0;
+
+        const inputLength = input.length;
+        const sentenceLength = sentence.length;
+        if (inputLength === 0 || sentenceLength === 0) return 0.0;
+
+        const lcsLength = longestCommonSubstringLength(input, sentence);
+        return (2 * lcsLength) / (inputLength + sentenceLength) * 100;
+    };
+
+    const longestCommonSubstringLength = (str1, str2) => {
+        let max = 0;
+        const table = Array(str1.length + 1).fill(null).map(() => Array(str2.length + 1).fill(0));
+
+        for (let i = 1; i <= str1.length; i++) {
+            for (let j = 1; j <= str2.length; j++) {
+                if (str1[i - 1] === str2[j - 1]) {
+                    table[i][j] = table[i - 1][j - 1] + 1;
+                    max = Math.max(max, table[i][j]);
+                }
+            }
+        }
+
+        return max;
+    };
+
+    const checkAnswer = () => {
+        if (!currentKey || !sentences[currentKey]) {
+            setMessage("Error: No sentence available.");
+            setMessageColor("text-danger");
+            return;
+        }
+
+        const similarityPercentage = calculateSimilarity(input, sentences[currentKey].sentence).toFixed(2);
+
+        let resultMessage, category;
+        if (similarityPercentage == 100) {
+            resultMessage = "PERFECT!";
+            setMessageColor("text-success");
+            category = "PERFECT_count";
+        } else if (similarityPercentage >= 70) {
+            resultMessage = "GOOD!";
+            setMessageColor("text-primary");
+            category = "GOOD_count";
+        } else if (similarityPercentage >= 50) {
+            resultMessage = "FAIR";
+            setMessageColor("text-warning");
+            category = "FAIR_count";
+            setShowSecondInput(true); // Show second input field
+        } else {
+            resultMessage = "BAD";
+            setMessageColor("text-danger");
+            category = "BAD_count";
+            setShowSecondInput(true); // Show second input field
+        }
+
+        setMessage(`${resultMessage} (${similarityPercentage}% similar) \n ${sentences[currentKey].sentence}`);
+        incrementLocalStorage(currentKey, category, new Date().toISOString());
+        setChecked(true);
+    };
+
+    const nextSentence = () => {
+        setInput(""); // Clear the input when moving to the next sentence
+        setSecondInput(""); // Clear the second input
+        const nextKey = selectNextSentence(sentences);
+        setCurrentKey(nextKey);
+        setMessage("");
+        setChecked(false); // Reset for the next sentence
+    };
+
+    const handleButtonClick = () => {
+        if (checked && !showSecondInput) {
+            nextSentence();
+        } else if (showSecondInput) {
+            if (secondInput === sentences[currentKey].sentence) {
+                nextSentence();
+            } else {
+                setErrorMessage("Incorrect, please try again.");
+                setMessageColor("text-danger");
+            }
+        } else {
+            checkAnswer();
+        }
+    };
+
+    const incrementLocalStorage = (key, category, datetime) => {
+        const storedData = JSON.parse(localStorage.getItem(key)) || { ...sentences[key] };
+        storedData[category] = (storedData[category] || 0) + 1;
+        storedData.last_datetime = datetime;
+        localStorage.setItem(key, JSON.stringify(storedData));
+        loadSentenceStats(key);
+    };
+
+    const clearScores = () => {
+        Object.keys(sentences).forEach(key => {
+            localStorage.removeItem(key);
+        });
+        setStats({
+            PERFECT: 0,
+            GOOD: 0,
+            FAIR: 0,
+            BAD: 0
+        });
+        setMessage("Cleared");
+        setMessageColor("text-success");
+        setChecked(false);
+        setInput(""); // Clear the input when scores are cleared
+        if (inputRef.current) {
+            inputRef.current.focus();
+        }
+    };
+
+    if (!currentKey) return null;
+
+    return React.createElement(
+        'div',
+        null,
+        React.createElement('p', { className: `message ${messageColor}` }, message || ' '),
+        React.createElement('p', null, sentences[currentKey].sentence_ja),
+        React.createElement('input', {
+            type: 'text',
+            className: 'form-control',
+            value: input,
+            ref: inputRef, // Attach the ref to the input field
+            onChange: (e) => setInput(e.target.value),
+            disabled: checked || showSecondInput // Disable if checked or second input is shown
+        }),
+        showSecondInput && React.createElement('input', {
+            type: 'text',
+            className: 'form-control mt-3',
+            value: secondInput,
+            ref: secondInputRef, // Attach the ref to the second input field
+            onChange: (e) => setSecondInput(e.target.value)
+        }),
+        showSecondInput && React.createElement('p', { className: 'text-danger mt-2', style: { textAlign: 'left' } }, errorMessage),
+        React.createElement('div', { className: 'text-end mt-3' },
+            React.createElement('button', {
+                onClick: handleButtonClick,
+                className: 'btn btn-primary',
+            }, checked && !showSecondInput ? 'Next' : (showSecondInput ? 'Again' : 'Check'))
+        ),
+        React.createElement('table', { className: 'table table-striped table-bordered mt-4', style: { tableLayout: 'fixed', width: '100%' } },
+            React.createElement('thead', null,
+                React.createElement('tr', null,
+                    React.createElement('th', { colSpan: 4 }, '過去の成績')
+                )
+            ),
+            React.createElement('tbody', null,
+                React.createElement('tr', null,
+                    React.createElement('td', { style: { backgroundColor: '#d4edda', width: '25%' } }, `PERFECT: ${stats.PERFECT}`),
+                    React.createElement('td', { style: { backgroundColor: '#cce5ff', width: '25%' } }, `GOOD: ${stats.GOOD}`),
+                    React.createElement('td', { style: { backgroundColor: '#fff3cd', width: '25%' } }, `FAIR: ${stats.FAIR}`),
+                    React.createElement('td', { style: { backgroundColor: '#f8d7da', width: '25%' } }, `BAD: ${stats.BAD}`)
+                )
+            )
+        ),
+        React.createElement('button', { onClick: clearScores, className: 'btn btn-danger mt-3' }, 'Clear Scores')
+    );
+}
+
+ReactDOM.render(
+    React.createElement(TypingGame),
+    document.getElementById('root')
+);
+
+
+
+
+
   </script>
 </body>
 </html>
