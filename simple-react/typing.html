@@ -49,8 +49,10 @@
         PERFECT: 0,
         GOOD: 0,
         FAIR: 0,
-        BAD: 0
+        BAD: 0,
+        similarity_sum: 0, // Initialize the sum of similarities
     });
+    const [lastDatetime, setLastDatetime] = useState("-");
     
     const inputRef = useRef(null);
     const secondInputRef = useRef(null);
@@ -109,8 +111,10 @@
             PERFECT: storedData.PERFECT_count || 0,
             GOOD: storedData.GOOD_count || 0,
             FAIR: storedData.FAIR_count || 0,
-            BAD: storedData.BAD_count || 0
+            BAD: storedData.BAD_count || 0,
+            similarity_sum: storedData.similarity_sum || 0, // Load the sum of similarities
         });
+        setLastDatetime(storedData.last_datetime || "-");
     };
 
     const calculateSimilarity = (input, sentence) => {
@@ -171,7 +175,7 @@
         }
 
         setMessage(`${resultMessage} (${similarityPercentage}% similar) \n ${sentences[currentKey].sentence}`);
-        incrementLocalStorage(currentKey, category, new Date().toISOString());
+        incrementLocalStorage(currentKey, category, new Date().toISOString(), parseFloat(similarityPercentage));
         setChecked(true);
     };
 
@@ -199,9 +203,10 @@
         }
     };
 
-    const incrementLocalStorage = (key, category, datetime) => {
+    const incrementLocalStorage = (key, category, datetime, similarity) => {
         const storedData = JSON.parse(localStorage.getItem(key)) || { ...sentences[key] };
         storedData[category] = (storedData[category] || 0) + 1;
+        storedData.similarity_sum = (storedData.similarity_sum || 0) + similarity; // Add the current similarity to the sum
         storedData.last_datetime = datetime;
         localStorage.setItem(key, JSON.stringify(storedData));
         loadSentenceStats(key);
@@ -215,7 +220,8 @@
             PERFECT: 0,
             GOOD: 0,
             FAIR: 0,
-            BAD: 0
+            BAD: 0,
+            similarity_sum: 0, // Reset similarity sum
         });
         setMessage("Cleared");
         setMessageColor("text-success");
@@ -233,6 +239,8 @@
         null,
         React.createElement('p', { className: `message ${messageColor}` }, message || ' '),
         React.createElement('p', null, sentences[currentKey].sentence_ja),
+        React.createElement('p', { className: 'text-muted' }, `Last Attempt: ${lastDatetime}`),
+        React.createElement('p', { className: 'text-muted' }, `Total Similarity: ${stats.similarity_sum.toFixed(2)}`), // Display the sum of similarities
         React.createElement('input', {
             type: 'text',
             className: 'form-control',
@@ -278,6 +286,7 @@ ReactDOM.render(
     React.createElement(TypingGame),
     document.getElementById('root')
 );
+
 
 
 
